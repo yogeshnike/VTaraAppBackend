@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "backend"
+version = "0.1.0"
+description = "Backend for VTara - Automotive Threat Analysis and Risk Assessment Tool"
+authors = ["Your Name <your.email@example.com>"]
+packages = [
+    { include = "app" }
+]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<4.0"
+Flask = "^3.0.2"
+Flask-SQLAlchemy = "^3.1.1"
+Flask-Migrate = "^4.0.5"
+Flask-CORS = "^4.0.0"
+python-dotenv = "^1.0.1"
+marshmallow = "^3.21.1"
+psycopg2-binary = "^2.9.9"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.2"
+black = "^24.2.0"
+flake8 = "^7.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
