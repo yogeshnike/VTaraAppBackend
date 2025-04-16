@@ -1,7 +1,6 @@
 from app import create_app
 
-server = create_app()
-print('Starting server on http://localhost:5000')
+app = create_app()
 
 if __name__ == '__main__':
-    server.serve_forever()
+    app.run(host='0.0.0.0', port=5000, debug=True)

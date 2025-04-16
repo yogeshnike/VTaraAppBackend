@@ -1,15 +1,19 @@
 from datetime import datetime
-from app import db
+from app.extensions import db
+import uuid
 
 class Project(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
+    __tablename__ = 'projects'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=False)
+    created_by = db.Column(db.String(255), nullable=False)
     start_date = db.Column(db.Date, nullable=False)
-    end_date = db.Column(db.Date)
+    end_date = db.Column(db.Date, nullable=True)
     status = db.Column(db.String(20), nullable=False)
-    overall_risk = db.Column(db.Integer, default=0)
-    max_vulnerability = db.Column(db.Integer, default=0)
+    overall_risk = db.Column(db.Float, nullable=False)
+    max_vulnerability = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -18,6 +22,7 @@ class Project(db.Model):
             'id': self.id,
             'name': self.name,
             'description': self.description,
+            'created_by': self.created_by,
             'start_date': self.start_date.isoformat(),
             'end_date': self.end_date.isoformat() if self.end_date else None,
             'status': self.status,
