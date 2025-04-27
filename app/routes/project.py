@@ -18,6 +18,7 @@ def create_project():
         project = Project(**data)
         db.session.add(project)
         db.session.commit()
+        print(jsonify(project_schema.dump(project)))
         return jsonify(project_schema.dump(project)), 201
     except ValidationError as err:
         return jsonify({"errors": err.messages}), 400

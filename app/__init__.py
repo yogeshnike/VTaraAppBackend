@@ -7,6 +7,10 @@ from app.routes.project import bp as project_bp
 import os
 from dotenv import load_dotenv
 
+# Add to existing imports
+from app.routes.canvas import bp as canvas_bp
+
+
 # Load environment variables immediately
 load_dotenv(override=True)
 
@@ -15,12 +19,13 @@ def create_app():
     
     # Configure CORS
     cors = CORS(app, resources={
-        r"/*": {
+        r"/api/*": {
             "origins": "*",
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Content-Type", "Authorization"],
+            "allow_headers": ["Content-Type", "Authorization","X-Requested-With"],
             "expose_headers": ["Content-Range", "X-Content-Range"],
-            "supports_credentials": True
+            "supports_credentials": True,
+            "max_age": 120  # Cache preflight requests for 2 minutes
         }
     })
     
@@ -35,6 +40,8 @@ def create_app():
     
     # Register blueprints
     app.register_blueprint(project_bp, url_prefix='/api')
+    # Add to blueprint registration
+    app.register_blueprint(canvas_bp, url_prefix='/api')
     
     @app.route('/')
     def home():

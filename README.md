@@ -11,3 +11,6 @@ docker run --name vtara-db -e POSTGRES_USER=vtara_user -e POSTGRES_PASSWORD=secu
 poetry run flask db init
 poetry run flask db migrate -m "Add Project model"
 poetry run flask db upgrade
+
+poetry install
+poetry run python run.py
