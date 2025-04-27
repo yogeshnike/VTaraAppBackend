@@ -51,6 +51,32 @@ def update_node(project_id, node_id):
         db.session.rollback()
         return jsonify({'error': str(e)}), 400
 
+@bp.route('<project_id>/nodes/<node_id>/group', methods=['PUT'])
+def update_node_group(project_id, node_id):
+    try:
+        data = request.get_json()
+        node = Node.query.filter_by(project_id=project_id, id=node_id).first()
+        
+        if not node:
+            return jsonify({'error': 'Node not found'}), 404
+
+        # Validate group if group_id is provided
+        group_id = data.get('group_id')
+        if group_id:
+            group = Group.query.filter_by(project_id=project_id, id=group_id).first()
+            if not group:
+                return jsonify({'error': 'Group not found'}), 404
+            
+        # Update node's group
+        node.group_id = group_id
+        db.session.commit()
+        
+        return jsonify(node_schema.dump(node)), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
 # Add this route after update_node route
 @bp.route('<project_id>/nodes/<node_id>', methods=['DELETE'])
 def delete_node(project_id, node_id):
@@ -80,6 +106,7 @@ def delete_node(project_id, node_id):
 def create_group(project_id):
     try:
         data = request.get_json()
+        print(data)
         data['project_id'] = project_id
         group_data = group_schema.load(data)
         group = Group(**group_data)
@@ -87,20 +114,150 @@ def create_group(project_id):
         db.session.commit()
         return jsonify(group_schema.dump(group)), 201
     except ValidationError as err:
+        print(err.messages)
         return jsonify(err.messages), 400
+
+@bp.route('<project_id>/groups/<group_id>', methods=['PUT'])
+def update_group(project_id, group_id):
+    try:
+        data = request.get_json()
+        group = Group.query.filter_by(project_id=project_id, id=group_id).first()
+        
+        if not group:
+            return jsonify({'error': 'Group not found'}), 404
+            
+        # Update group fields
+        group.group_name = data['group_name']
+        if 'parent_group_id' in data:
+            # Check for circular reference if parent_group_id is being updated
+            if data['parent_group_id']:
+                # Check if the new parent exists and belongs to the same project
+                parent_group = Group.query.filter_by(
+                    project_id=project_id, 
+                    id=data['parent_group_id']
+                ).first()
+                
+                if not parent_group:
+                    return jsonify({'error': 'Parent group not found'}), 404
+                
+                # Check for circular reference
+                current_parent = parent_group
+                while current_parent:
+                    if current_parent.id == group_id:
+                        return jsonify({'error': 'Circular group reference detected'}), 400
+                    current_parent = current_parent.parent_group_id and Group.query.get(current_parent.parent_group_id)
+            
+            group.parent_group_id = data['parent_group_id']
+        
+        db.session.commit()
+        return jsonify(group_schema.dump(group)), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@bp.route('<project_id>/groups/<group_id>', methods=['DELETE'])
+def delete_group(project_id, group_id):
+    try:
+        group = Group.query.filter_by(project_id=project_id, id=group_id).first()
+        
+        if not group:
+            return jsonify({'error': 'Group not found'}), 404
+            
+        # Update child nodes to remove group reference
+        Node.query.filter_by(group_id=group_id).update({'group_id': None})
+        
+        # Update child groups to remove parent reference
+        Group.query.filter_by(parent_group_id=group_id).update({'parent_group_id': None})
+        
+        # Delete the group
+        db.session.delete(group)
+        db.session.commit()
+        
+        return jsonify({'message': 'Group deleted successfully'}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
 
 @bp.route('<project_id>/edges', methods=['POST'])
 def create_edge(project_id):
     try:
         data = request.get_json()
         data['project_id'] = project_id
+        
+        
+       
+        print(data)
+            
+        # Validate source and target nodes exist and belong to the project
+        source_node = Node.query.filter_by(
+            project_id=project_id, 
+            id=data['source_node_id']
+        ).first()
+        target_node = Node.query.filter_by(
+            project_id=project_id, 
+            id=data['target_node_id']
+        ).first()
+        
+        
+        if not source_node or not target_node:
+            return jsonify({'error': 'Source or target node not found'}), 404
+            
+        # Set empty string as default for edge_label if not provided
+        if 'edge_label' not in data:
+            data['edge_label'] = ''
+            
         edge_data = edge_schema.load(data)
         edge = Edge(**edge_data)
         db.session.add(edge)
         db.session.commit()
+        
         return jsonify(edge_schema.dump(edge)), 201
+        
     except ValidationError as err:
+        print(err.messages)
         return jsonify(err.messages), 400
+    except Exception as e:
+        print(e)
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@bp.route('<project_id>/edges/<edge_id>', methods=['PUT'])
+def update_edge(project_id, edge_id):
+    try:
+        data = request.get_json()
+        edge = Edge.query.filter_by(project_id=project_id, id=edge_id).first()
+        
+        if not edge:
+            return jsonify({'error': 'Edge not found'}), 404
+            
+        edge.edge_label = data['edge_label']
+        db.session.commit()
+        
+        return jsonify(edge_schema.dump(edge)), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@bp.route('<project_id>/edges/<edge_id>', methods=['DELETE'])
+def delete_edge(project_id, edge_id):
+    try:
+        edge = Edge.query.filter_by(project_id=project_id, id=edge_id).first()
+        
+        if not edge:
+            return jsonify({'error': 'Edge not found'}), 404
+            
+        # Delete the edge
+        db.session.delete(edge)
+        db.session.commit()
+        
+        return jsonify({'message': 'Edge deleted successfully'}), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
 
 @bp.route('<project_id>/canvas', methods=['GET'])
 def get_canvas(project_id):

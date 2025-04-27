@@ -10,6 +10,7 @@ class Edge(db.Model):
     project_id = db.Column(db.String(36), db.ForeignKey('projects.id'), nullable=False)
     source_node_id = db.Column(db.String(36), db.ForeignKey('nodes.id'), nullable=False)
     target_node_id = db.Column(db.String(36), db.ForeignKey('nodes.id'), nullable=False)
+    edge_label = db.Column(db.String(255), nullable=True)  # Add this line
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -23,6 +24,7 @@ class Edge(db.Model):
             'id': self.id,
             'source_node_id': self.source_node_id,
             'target_node_id': self.target_node_id,
+            'edge_label': self.edge_label,  # Add this line
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()
         }
