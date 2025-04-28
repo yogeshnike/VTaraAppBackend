@@ -3,10 +3,13 @@ from app.extensions import db
 from app.models.node import Node
 from app.models.group import Group
 from app.models.edge import Edge
+from app.models.canvas import Canvas
 from app.schemas.node import NodeSchema
 from app.schemas.group import GroupSchema
 from app.schemas.edge import EdgeSchema
+from app.schemas.canvas import CanvasSchema
 from marshmallow import ValidationError
+from datetime import datetime
 
 bp = Blueprint('canvas', __name__)
 node_schema = NodeSchema()
@@ -271,18 +274,20 @@ def get_canvas(project_id):
         'edges': [edge_schema.dump(edge) for edge in edges]
     })
 
-@bp.route('<project_id>/canvas', methods=['POST'])
-def save_canvas(project_id):
+@bp.route('<project_id>/canvass', methods=['POST'])
+def save_canvasbp(project_id):
     try:
         data = request.get_json()
+        print(data)
         
         # Start transaction
         db.session.begin_nested()
         
         # Delete existing canvas data
+        Edge.query.filter_by(project_id=project_id).delete()
         Node.query.filter_by(project_id=project_id).delete()
         Group.query.filter_by(project_id=project_id).delete()
-        Edge.query.filter_by(project_id=project_id).delete()
+        
         
         # Create groups first (for hierarchy)
         group_map = {}
@@ -321,5 +326,111 @@ def save_canvas(project_id):
         return jsonify({'message': 'Canvas saved successfully'}), 200
         
     except Exception as e:
+        print(e)
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
+@bp.route('<project_id>/canvas', methods=['POST'])
+def save_canvas(project_id):
+    try:
+        data = request.get_json()
+        print(data)
+
+        # --- 1. Update/Insert Groups ---
+        incoming_group_ids = set()
+        for group_data in data.get('groups', []):
+            group_data['project_id'] = project_id
+            group = Group.query.filter_by(project_id=project_id, id=group_data['id']).first()
+            if group:
+                # Update existing
+                group.group_name = group_data['group_name']
+                group.x_pos = group_data.get('x_pos', group.x_pos)
+                group.y_pos = group_data.get('y_pos', group.y_pos)
+                group.parent_group_id = group_data.get('parent_group_id')
+                group.width = group_data.get('width', group.width)
+                group.height = group_data.get('height', group.height)
+                #group.style = group_data.get('style', group.style)
+            else:
+                # Insert new
+                group = Group(**group_schema.load(group_data))
+                db.session.add(group)
+            incoming_group_ids.add(group_data['id'])
+
+        # Delete groups not in incoming data
+        Group.query.filter(
+            Group.project_id == project_id,
+            ~Group.id.in_(incoming_group_ids)
+        ).delete(synchronize_session=False)
+
+        db.session.flush()  # To get group IDs for nodes
+
+        # --- 2. Update/Insert Nodes ---
+        incoming_node_ids = set()
+        for node_data in data.get('nodes', []):
+            node_data['project_id'] = project_id
+            node = Node.query.filter_by(project_id=project_id, id=node_data['id']).first()
+            if node:
+                # Update existing
+                node.node_name = node_data['node_name']
+                node.node_description = node_data['node_description']
+                node.x_pos = node_data['x_pos']
+                node.y_pos = node_data['y_pos']
+                node.stride_properties = node_data['stride_properties']
+                node.group_id = node_data.get('group_id')
+            else:
+                # Insert new
+                node = Node(**node_schema.load(node_data))
+                db.session.add(node)
+            incoming_node_ids.add(node_data['id'])
+
+        # Delete nodes not in incoming data
+        Node.query.filter(
+            Node.project_id == project_id,
+            ~Node.id.in_(incoming_node_ids)
+        ).delete(synchronize_session=False)
+
+        db.session.flush()  # To get node IDs for edges
+
+         # --- 3. Update/Insert Edges ---
+        incoming_edge_ids = set()
+        for edge_data in data.get('edges', []):
+            edge_data['project_id'] = project_id
+            edge = Edge.query.filter_by(project_id=project_id, id=edge_data['id']).first()
+            if edge:
+                # Update existing
+                edge.source_node_id = edge_data['source_node_id']
+                edge.target_node_id = edge_data['target_node_id']
+                edge.edge_label = edge_data.get('edge_label', '')
+                edge.style = edge_data.get('style', edge.style)
+            else:
+                # Insert new
+                edge = Edge(**edge_schema.load(edge_data))
+                db.session.add(edge)
+            incoming_edge_ids.add(edge_data['id'])
+
+        # Delete edges not in incoming data
+        Edge.query.filter(
+            Edge.project_id == project_id,
+            ~Edge.id.in_(incoming_edge_ids)
+        ).delete(synchronize_session=False)
+
+        # --- 4. Save Canvas JSON ---
+        canvas = Canvas.query.filter_by(project_id=project_id).first()
+        if not canvas:
+            canvas = Canvas(
+                project_id=project_id,
+                data=data,
+                timestamp=datetime.utcnow()
+            )
+            db.session.add(canvas)
+        else:
+            canvas.data = data
+            canvas.timestamp = datetime.utcnow()
+
+        db.session.commit()
+        return jsonify({'message': 'Canvas saved successfully'}), 200
+
+    except Exception as e:
+        print(e)
         db.session.rollback()
         return jsonify({'error': str(e)}), 400

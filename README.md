@@ -14,3 +14,13 @@ poetry run flask db upgrade
 
 poetry install
 poetry run python run.py
+
+
+poetry run flask db revision -m "Clean all tables"
+
+
+
+TRUNCATE TABLE edge RESTART IDENTITY CASCADE;
+TRUNCATE TABLE node RESTART IDENTITY CASCADE;
+TRUNCATE TABLE "group" RESTART IDENTITY CASCADE;
+TRUNCATE TABLE project RESTART IDENTITY CASCADE;

@@ -1,0 +1,27 @@
+{'nodes': [
+        {'id': '70721079-dacd-40ae-934b-314cb9717630', 'type': 'group', 'position': {'x': 305.9479329070913, 'y': 169.46944037310124
+            }, 'style': {'width': 300, 'height': 200, 'pointerEvents': 'all'
+            }, 'data': {'label': 'sad', 'childNodes': ['abe658b9-8c2a-4449-9c2d-e82dcb9e44a9'
+                ], 'description': '', 'properties': []
+            }, 'draggable': True, 'selectable': True, 'width': 300, 'height': 200, 'selected': False, 'dragging': False
+        },
+        {'id': 'abe658b9-8c2a-4449-9c2d-e82dcb9e44a9', 'type': 'default', 'position': {'x': 54.052067092908715, 'y': 100.53055962689876
+            }, 'data': {'label': 'ss', 'description': 's', 'properties': ['Spoofing'
+                ]
+            }, 'draggable': True, 'parentNode': '70721079-dacd-40ae-934b-314cb9717630', 'width': 150, 'height': 62, 'selected': False, 'positionAbsolute': {'x': 360, 'y': 270
+            }, 'dragging': False, 'extent': 'parent', 'selectable': True
+        },
+        {'id': '63fef099-c764-4809-b167-1382b44c019c', 'type': 'default', 'position': {'x': -210, 'y': 45
+            }, 'data': {'label': 'x', 'description': 'x', 'properties': ['Spoofing'
+                ]
+            }, 'draggable': True, 'parentNode': None, 'width': 150, 'height': 62, 'selected': False, 'positionAbsolute': {'x': -210, 'y': 45
+            }, 'dragging': False
+        }
+    ], 'edges': [
+        {'type': 'smoothstep', 'animated': False, 'style': {'stroke': '#2563eb', 'strokeWidth': 2
+            }, 'markerEnd': {'type': 'arrowclosed', 'width': 20, 'height': 20, 'color': '#2563eb'
+            }, 'source': '63fef099-c764-4809-b167-1382b44c019c', 'sourceHandle': 'right', 'target': 'abe658b9-8c2a-4449-9c2d-e82dcb9e44a9', 'targetHandle': 'left', 'id': '7ae2d200-e040-4317-a5ce-b3bad740d047', 'data': {'label': 'sssssssssss'
+            }, 'selected': True
+        }
+    ], 'timestamp': '2025-04-28T09: 39: 54.244Z'
+}
