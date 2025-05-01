@@ -11,6 +11,8 @@ class Edge(db.Model):
     source_node_id = db.Column(db.String(36), db.ForeignKey('nodes.id'), nullable=False)
     target_node_id = db.Column(db.String(36), db.ForeignKey('nodes.id'), nullable=False)
     edge_label = db.Column(db.String(255), nullable=True)  # Add this line
+    source_handle = db.Column(db.String(50), nullable=True)  # Add this line
+    target_handle = db.Column(db.String(50), nullable=True)  # Add this line
     style = db.Column(JSONB, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -26,6 +28,8 @@ class Edge(db.Model):
             'source_node_id': self.source_node_id,
             'target_node_id': self.target_node_id,
             'edge_label': self.edge_label,  # Add this line
+            'source_handle': self.source_handle,  # Add this line
+            'target_handle': self.target_handle,  # Add this line
             'style': self.style,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()

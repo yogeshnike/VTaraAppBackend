@@ -11,6 +11,14 @@ from app.schemas.canvas import CanvasSchema
 from marshmallow import ValidationError
 from datetime import datetime
 
+import os,json
+
+# Define the upload folder path
+UPLOAD_FOLDER = os.path.join(os.getcwd(), "uploads", "canvas_images")
+
+# Create the directory if it doesn't exist
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 bp = Blueprint('canvas', __name__)
 node_schema = NodeSchema()
 group_schema = GroupSchema()
@@ -264,77 +272,100 @@ def delete_edge(project_id, edge_id):
 
 @bp.route('<project_id>/canvas', methods=['GET'])
 def get_canvas(project_id):
-    nodes = Node.query.filter_by(project_id=project_id).all()
-    groups = Group.query.filter_by(project_id=project_id).all()
-    edges = Edge.query.filter_by(project_id=project_id).all()
-    
-    return jsonify({
-        'nodes': [node_schema.dump(node) for node in nodes],
-        'groups': [group_schema.dump(group) for group in groups],
-        'edges': [edge_schema.dump(edge) for edge in edges]
-    })
-
-@bp.route('<project_id>/canvass', methods=['POST'])
-def save_canvasbp(project_id):
     try:
-        data = request.get_json()
-        print(data)
+        # Get all nodes, groups, and edges for the project
+        nodes = Node.query.filter_by(project_id=project_id).all()
+        groups = Group.query.filter_by(project_id=project_id).all()
+        edges = Edge.query.filter_by(project_id=project_id).all()
         
-        # Start transaction
-        db.session.begin_nested()
+        # Get the canvas data if it exists
+        canvas = Canvas.query.filter_by(project_id=project_id).first()
         
-        # Delete existing canvas data
-        Edge.query.filter_by(project_id=project_id).delete()
-        Node.query.filter_by(project_id=project_id).delete()
-        Group.query.filter_by(project_id=project_id).delete()
+        # Transform the data
+        nodes_data = [
+            {
+                'id': node.id,
+                'node_name': node.node_name,
+                'node_description': node.node_description,
+                'x_pos': node.x_pos,
+                'y_pos': node.y_pos,
+                'stride_properties': node.stride_properties,
+                'group_id': node.group_id,
+                'style': node.style if hasattr(node, 'style') else None
+            }
+            for node in nodes
+        ]
         
+        groups_data = [
+            {
+                'id': group.id,
+                'group_name': group.group_name,
+                'x_pos': group.x_pos,
+                'y_pos': group.y_pos,
+                'parent_group_id': group.parent_group_id,
+                'width': group.width,
+                'height': group.height,
+                'style': group.style if hasattr(group, 'style') else None
+            }
+            for group in groups
+        ]
+
+        edges_data = [
+            {
+                'id': edge.id,
+                'source_node_id': edge.source_node_id,
+                'target_node_id': edge.target_node_id,
+                'edge_label': edge.edge_label,
+                'style': edge.style if hasattr(edge, 'style') else None,
+                'source_handle':edge.source_handle,
+                'target_handle':edge.target_handle
+
+            }
+            for edge in edges
+        ]
         
-        # Create groups first (for hierarchy)
-        group_map = {}
-        for group_data in data.get('groups', []):
-            group_data['project_id'] = project_id
-            group = Group(**group_schema.load(group_data))
-            db.session.add(group)
-            db.session.flush()
-            group_map[group_data['id']] = group.id
+        # Include any additional canvas data if it exists
+        canvas_data = {
+            'nodes': nodes_data,
+            'groups': groups_data,
+            'edges': edges_data,
+        }
         
-        # Update parent group references
-        for group in Group.query.filter_by(project_id=project_id).all():
-            if group.parent_group_id in group_map:
-                group.parent_group_id = group_map[group.parent_group_id]
-        
-        # Create nodes
-        node_map = {}
-        for node_data in data.get('nodes', []):
-            node_data['project_id'] = project_id
-            if node_data.get('group_id') in group_map:
-                node_data['group_id'] = group_map[node_data['group_id']]
-            node = Node(**node_schema.load(node_data))
-            db.session.add(node)
-            db.session.flush()
-            node_map[node_data['id']] = node.id
-        
-        # Create edges
-        for edge_data in data.get('edges', []):
-            edge_data['project_id'] = project_id
-            edge_data['source_node_id'] = node_map[edge_data['source_node_id']]
-            edge_data['target_node_id'] = node_map[edge_data['target_node_id']]
-            edge = Edge(**edge_schema.load(edge_data))
-            db.session.add(edge)
-        
-        db.session.commit()
-        return jsonify({'message': 'Canvas saved successfully'}), 200
-        
+        if canvas and canvas.data:
+            canvas_data['additional_data'] = canvas.data
+            
+        if canvas and hasattr(canvas, 'image_path') and canvas.image_path:
+            canvas_data['image_path'] = canvas.image_path
+
+        return jsonify(canvas_data), 200
+
     except Exception as e:
-        print(e)
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 400
+        print('Error fetching canvas data:', str(e))
+        return jsonify({
+            'error': 'Failed to fetch canvas data',
+            'details': str(e)
+        }), 500
+
 
 @bp.route('<project_id>/canvas', methods=['POST'])
 def save_canvas(project_id):
     try:
-        data = request.get_json()
+        data = json.loads(request.form['canvasData'])
         print(data)
+
+        # Get the image file
+        image = request.files['image']
+        
+        # Generate a unique filename
+        filename = f"canvas_{project_id}.png"
+        
+        # Save the image to a directory
+        image_path = os.path.join(UPLOAD_FOLDER, filename)
+        image.save(image_path)
+        
+        # Save the canvas data to database
+        data['image_path'] = image_path
+        #save_to_database(canvas_data)
 
         # --- 1. Update/Insert Groups ---
         incoming_group_ids = set()
@@ -402,6 +433,8 @@ def save_canvas(project_id):
                 edge.target_node_id = edge_data['target_node_id']
                 edge.edge_label = edge_data.get('edge_label', '')
                 edge.style = edge_data.get('style', edge.style)
+                edge.source_handle = edge_data['source_handle']
+                edge.target_handle = edge_data['target_handle']
             else:
                 # Insert new
                 edge = Edge(**edge_schema.load(edge_data))

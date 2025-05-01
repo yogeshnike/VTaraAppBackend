@@ -6,6 +6,8 @@ class EdgeSchema(Schema):
     source_node_id = fields.Str(required=True)
     target_node_id = fields.Str(required=True)
     edge_label = fields.Str(allow_none=True, validate=validate.Length(max=255))
+    source_handle = fields.Str(allow_none=True)  # Add this line
+    target_handle = fields.Str(allow_none=True)  # Add this line
     style = fields.Dict()
     created_at = fields.DateTime(dump_only=True)
     updated_at = fields.DateTime(dump_only=True)
