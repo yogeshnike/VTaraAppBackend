@@ -23,3 +23,4 @@ class ProjectResponseSchema(ProjectCreateSchema):
     id = fields.Str(required=True)
     created_at = fields.DateTime(required=True)
     updated_at = fields.DateTime(required=True)
+    status = fields.String(validate=validate.OneOf(['Not-Started', 'In-Progress', 'Completed']))

@@ -53,3 +53,26 @@ def delete_project(project_id):
     db.session.delete(project)
     db.session.commit()
     return '', 204
+
+@bp.route('/projects/<project_id>/status', methods=['PATCH'])
+def update_project_status(project_id):
+    try:
+        project = Project.query.get_or_404(project_id)
+        data = request.json
+        
+        # Validate status value
+        valid_statuses = ['Not-Started', 'In-Progress', 'Completed']
+        if 'status' not in data or data['status'] not in valid_statuses:
+            return jsonify({
+                "error": "Invalid status. Must be one of: Not-Started, In-Progress, Completed"
+            }), 400
+        
+        # Update project status
+        project.status = data['status']
+        project.updated_at = datetime.utcnow()  # Update the timestamp
+        
+        db.session.commit()
+        return jsonify(project_schema.dump(project))
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500

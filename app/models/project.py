@@ -11,7 +11,7 @@ class Project(db.Model):
     created_by = db.Column(db.String(255), nullable=False)
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=True)
-    status = db.Column(db.String(20), nullable=False)
+    status = db.Column(db.String(20), default='Not-Started',nullable=False)
     overall_risk = db.Column(db.Float, nullable=False)
     max_vulnerability = db.Column(db.Float, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
