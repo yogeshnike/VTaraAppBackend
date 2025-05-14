@@ -4,6 +4,7 @@ from app.extensions import db
 from app.schemas.project import ProjectCreateSchema, ProjectUpdateSchema, ProjectResponseSchema
 from marshmallow import ValidationError
 from datetime import datetime
+from app.models.configuration import Configuration 
 
 bp = Blueprint('projects', __name__)
 project_schema = ProjectResponseSchema()
@@ -15,6 +16,10 @@ project_update_schema = ProjectUpdateSchema()
 def create_project():
     try:
         data = project_create_schema.load(request.json)
+        # Validate that the configuration exists
+        config = Configuration.query.get(data['config_id'])
+        if not config:
+            return jsonify({"error": "Configuration not found"}), 404
         project = Project(**data)
         db.session.add(project)
         db.session.commit()
@@ -38,6 +43,9 @@ def update_project(project_id):
     try:
         project = Project.query.get_or_404(project_id)
         data = project_update_schema.load(request.json, partial=True)
+
+        # Remove config_id from update data if it exists
+        data.pop('config_id', None)
         
         for key, value in data.items():
             setattr(project, key, value)
@@ -76,3 +84,5 @@ def update_project_status(project_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
+# Add a new endpoint to get available configurations for project creation

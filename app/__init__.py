@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 
 # Add to existing imports
 from app.routes.canvas import bp as canvas_bp
+from app.routes.configuration import bp as configuration_bp
+from app.routes.damage_scenario import bp as damage_scenario_bp  # Make sure this import works
 
 
 # Load environment variables immediately
@@ -42,6 +44,12 @@ def create_app():
     app.register_blueprint(project_bp, url_prefix='/api')
     # Add to blueprint registration
     app.register_blueprint(canvas_bp, url_prefix='/api')
+
+    # Add to blueprint registration
+    app.register_blueprint(configuration_bp, url_prefix='/api')
+    app.register_blueprint(damage_scenario_bp, url_prefix='/api')  # Add this line
+
+
     
     @app.route('/')
     def home():

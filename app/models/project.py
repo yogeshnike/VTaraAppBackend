@@ -14,6 +14,7 @@ class Project(db.Model):
     status = db.Column(db.String(20), default='Not-Started',nullable=False)
     overall_risk = db.Column(db.Float, nullable=False)
     max_vulnerability = db.Column(db.Float, nullable=False)
+    config_id = db.Column(db.String(36), db.ForeignKey('configurations.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -28,6 +29,7 @@ class Project(db.Model):
             'status': self.status,
             'overall_risk': self.overall_risk,
             'max_vulnerability': self.max_vulnerability,
+            'config_id': self.config_id,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()
         }
